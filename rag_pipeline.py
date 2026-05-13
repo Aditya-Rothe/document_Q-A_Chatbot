@@ -110,7 +110,7 @@ Question:
 
         # Generate Response
         completion = client.chat.completions.create(
-            model="meta-llama/Llama-3.1-8B-Instruct",
+            model="mistralai/Mistral-7B-Instruct-v0.3",
             messages=messages,
             max_tokens=512,
             temperature=0.3,
