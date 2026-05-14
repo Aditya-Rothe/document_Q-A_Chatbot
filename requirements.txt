@@ -13,3 +13,4 @@ sentence-transformers
 huggingface_hub==0.24.6
 transformers
 torch
+openai
