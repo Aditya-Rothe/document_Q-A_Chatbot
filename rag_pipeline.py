@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
+from huggingface_hub import InferenceClient
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -12,25 +12,17 @@ load_dotenv()
 
 
 def get_hf_token():
-    """Read HF token — works locally (.env) and on Streamlit Cloud (secrets)."""
-
-    # Try .env first (local development)
     token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-
-    # Try Streamlit secrets (Streamlit Cloud deployment)
     if not token:
         try:
             token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
         except Exception:
             pass
-
-    # Set it as env var so all libraries can access it
     if token:
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = token
     else:
-        st.error("❌ HuggingFace token not found. Add it to .env or Streamlit secrets.")
+        st.error("❌ HuggingFace token not found.")
         st.stop()
-
     return token
 
 
@@ -55,10 +47,6 @@ def prepare_vectorstore(pdf_path: str):
 def ask_question(vectorstore, question: str):
     token = get_hf_token()
 
-    # TEMPORARY DEBUG — remove after confirming it works on Streamlit Cloud
-    st.info(f"Debug: token length={len(token)}, starts with hf_={token.startswith('hf_')}")
-
-    # Retrieve top 3 relevant chunks
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
     docs = retriever.invoke(question)
     context = "\n\n".join([doc.page_content for doc in docs])
@@ -78,15 +66,16 @@ def ask_question(vectorstore, question: str):
         }
     ]
 
-    # HuggingFace official router — works on Streamlit Cloud
-    client = OpenAI(
-        base_url="https://router.huggingface.co/v1",
+    # Using HuggingFace InferenceClient with nebius provider
+    # — confirmed working free tier as of 2025
+    client = InferenceClient(
+        provider="nebius",
         api_key=token,
     )
 
     try:
         completion = client.chat.completions.create(
-            model="mistralai/Mistral-7B-Instruct-v0.3",
+            model="meta-llama/Llama-3.3-70B-Instruct",
             messages=messages,
             max_tokens=512,
             temperature=0.3,
@@ -94,9 +83,10 @@ def ask_question(vectorstore, question: str):
         return completion.choices[0].message.content.strip(), docs
 
     except Exception as e1:
+        # Fallback — smaller model, same provider
         try:
             completion = client.chat.completions.create(
-                model="meta-llama/Llama-3.2-3B-Instruct",
+                model="meta-llama/Llama-3.1-8B-Instruct",
                 messages=messages,
                 max_tokens=512,
                 temperature=0.3,
