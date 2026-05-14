@@ -4,6 +4,8 @@ DocMind is an AI-powered RAG (Retrieval-Augmented Generation) chatbot that allow
 
 Built using LangChain, FAISS, Sentence Transformers, Groq LLM API, and Streamlit.
 
+Click on this link to use the app- https://documentq-achatbot-tvevnznmz6mwgfbtystgmk.streamlit.app/
+
 ---
 
 ## 🚀 Features
